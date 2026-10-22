@@ -9,7 +9,7 @@
 
 export const CONFIG = {
   SUPABASE_URL: 'https://ikgvgusoninwjynfvwxk.supabase.co',
-  SUPABASE_KEY: '',
+  SUPABASE_KEY: 'sb_publishable_XZg31RrEFMpwmRRCtx4kGA_nIP_a48_',
 
   // Los usuarios (por ejemplo "angel") se guardan en Supabase como angel@finanzas.invalid.
   // ".invalid" es un dominio reservado que nunca recibe correos.
