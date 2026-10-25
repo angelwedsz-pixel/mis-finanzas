@@ -1,6 +1,6 @@
 // Guarda los archivos de la app para que abra rápido. Siempre intenta primero la versión
 // más nueva de internet; si no hay conexión, usa la guardada. Nunca guarda tus datos.
-const CACHE = 'mis-finanzas-v1';
+const CACHE = 'mis-finanzas-v2';
 const CORE = ['./', 'index.html', 'css/app.css', 'js/app.js', 'js/config.js', 'js/vendor/supabase.js',
   'manifest.webmanifest', 'icons/icono-180.png', 'icons/icono-192.png'];
 

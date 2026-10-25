@@ -76,6 +76,18 @@ datos…** y elige el archivo `finanzas_personales\data\finanzas.db`. Hazlo desd
 (abriendo la dirección de GitHub Pages en el navegador). El archivo solo se lee: no se modifica.
 También se puede hacer después en **Ajustes → Copias**.
 
+## Novedades (primer actualizacion)
+
+- **Corregir saldo**: en *Cuentas* toca una cuenta → *Corregir saldo* y escribe lo que tienes hoy.
+  No crea cuentas ni movimientos nuevos.
+- **Borrar cuentas**, aunque tengan movimientos (se borran también sus movimientos, con aviso).
+- **Planes** (nuevo botón en la barra):
+  - *Límites de gasto* por categoría en cada período de pago, con avisos al 80% y al pasarte.
+  - *Pagos fijos* (arriendo, servicios, suscripciones) con su día de pago, recordatorio en Inicio
+    y botón *Ya lo pagué* que anota el gasto.
+  - *Metas de ahorro* con nombre, valor, fecha y cuánto apartar por mes.
+- No requiere cambios en Supabase: los planes se guardan como ajustes de cada usuario.
+
 ## Bueno saber
 
 - **Pago mensual o quincenal**: se elige en *Ajustes → Salario*. Con pago quincenal, el disponible,

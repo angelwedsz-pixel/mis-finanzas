@@ -6,6 +6,8 @@ import { readMoney } from '../core/money.js';
 import { esc, icon, money, moneyInput, bindMoneyInputs, chips, bindChips, formData, toast } from './dom.js';
 import { activeAccounts, categoryOptions, errorMessage, sortTx, txList } from './common.js';
 import { openTxEditor } from './movements.js';
+import { billsStatus, limitsStatus } from '../core/plans.js';
+import { openPayBill } from './plans.js';
 
 const STATUS = { bien: 'Vas bien', cuidado: 'Ve con cuidado', mal: 'Ojo: así no alcanza' };
 const VIEWS = ['¿En qué se va mi plata?', 'Pago a pago', 'Mi ahorro', 'Lo último'];
@@ -71,6 +73,26 @@ function quickExpenseHtml(ctx) {
       <button class="btn primary block" type="submit">Guardar gasto</button>
     </form>
     <a class="btn block" style="margin-top:8px" href="#/anotar">${icon('plus')} Anotar otra cosa (salario, ahorro, tarjeta…)</a>
+  </div>`;
+}
+
+// Avisos de Planes: pagos fijos pendientes antes del próximo pago y límites casi agotados.
+function remindersHtml(ctx, s) {
+  const { store, today } = ctx;
+  const bills = billsStatus(store.state, today, s.period.end).filter((b) => b.beforeNextPay);
+  const limits = limitsStatus(store.state, s.period).filter((l) => l.status !== 'bien');
+  if (!bills.length && !limits.length) return '';
+  const owed = bills.reduce((a, b) => a + b.amount, 0);
+  const after = s.availability.available - owed;
+  return `<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between;margin-bottom:4px"><h3 style="margin:0">Para tener en cuenta</h3>
+      <a class="link small" href="#/planes">Ver planes</a></div>
+    ${bills.length ? `<p class="muted small" style="margin:4px 0 6px">Pagos fijos antes de tu próximo pago: <b>${money(owed)}</b>.
+      ${after >= 0 ? `Después de pagarlos te quedarían <b>${money(after)}</b>.` : `<span style="color:#FF8A8C">No te alcanza para todos: faltan ${money(-after)}.</span>`}</p>
+      <div class="list">${bills.slice(0, 4).map((b) => `<div class="item" style="cursor:default"><span class="main"><span class="title">${esc(b.name)} · ${money(b.amount)}</span>
+        <span class="meta bill-${b.status}" style="display:block">${b.status === 'vencido' ? 'Vencido' : b.daysLeft === 0 ? 'Vence hoy' : `Vence en ${b.daysLeft} día${b.daysLeft !== 1 ? 's' : ''}`}</span></span>
+        <button class="btn small" data-pay="${esc(b.key)}">Ya lo pagué</button></div>`).join('')}</div>` : ''}
+    ${limits.map((l) => `<div class="notice ${l.status === 'mal' ? 'err' : 'warn'}" style="margin-top:8px">${esc(l.category)}: ${l.status === 'mal'
+      ? `te pasaste del límite por <b>${money(-l.left)}</b>.` : `llevas ${Math.round(l.pct * 100)}% del límite; te quedan <b>${money(l.left)}</b>.`}</div>`).join('')}
   </div>`;
 }
 
@@ -193,7 +215,7 @@ export function renderHome(ctx) {
     ${s.isCurrent && !s.salaryCount ? `<div class="notice warn" style="margin-bottom:14px">Aún no anotas tu pago de ${words.this.toLowerCase()}. La app no lo suma sola. <a href="#/anotar?op=ingreso">Anotar mi salario</a></div>` : ''}
     <div class="home-top">
       <div class="stack">${heroHtml(s, today, words)}</div>
-      <div class="stack">${s.isCurrent ? quickExpenseHtml(ctx) : `<div class="notice">Estás viendo ${words.one === 'quincena' ? 'una quincena anterior' : 'un mes de pago anterior'}. Para anotar gastos, vuelve al actual.</div>`}</div>
+      <div class="stack">${s.isCurrent ? quickExpenseHtml(ctx) + remindersHtml(ctx, s) : `<div class="notice">Estás viendo ${words.one === 'quincena' ? 'una quincena anterior' : 'un mes de pago anterior'}. Para anotar gastos, vuelve al actual.</div>`}</div>
     </div>
     <div class="spacer"></div>${moneyCards(s)}
     <div class="spacer"></div><div class="spacer"></div>${monthSummary(s, words)}
@@ -208,6 +230,8 @@ export function renderHome(ctx) {
     if (b) { ui.homeView = Number(b.dataset.v); ctx.rerender(); }
   };
   main.querySelectorAll('[data-tx]').forEach((b) => b.addEventListener('click', () => openTxEditor(ctx, Number(b.dataset.tx))));
+  main.querySelectorAll('[data-pay]').forEach((b) => b.addEventListener('click', () =>
+    openPayBill(ctx, billsStatus(st, today).find((x) => x.key === b.dataset.pay))));
 
   const form = main.querySelector('#qr');
   if (!form) return;

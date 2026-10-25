@@ -4,7 +4,8 @@
 //  - LocalStore: datos de ejemplo guardados en este navegador (modo prueba) y pruebas.
 
 import { ACCOUNT_TYPES } from '../core/defaults.js';
-import { DuplicateError, ValidationError, findDuplicate, validateTransaction } from '../core/calc.js';
+import { DuplicateError, ValidationError, findDuplicate, validateTransaction, accountBalances } from '../core/calc.js';
+import { encodePlan, newPlanKey, renameInPlans } from '../core/plans.js';
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 
@@ -84,9 +85,28 @@ export class BaseStore {
     if (first && first < opening_date) {
       throw new ValidationError(`Hay movimientos desde el ${first}; la fecha de inicio no puede ser posterior.`);
     }
+    const oldName = this.state.accounts.find((a) => a.id === id)?.name;
     const row = await this._update('accounts', id, { name, type, opening_balance: Math.round(opening_balance), opening_date });
     this.state.accounts[this.state.accounts.findIndex((a) => a.id === id)] = row;
     this.touch();
+    const renamed = renameInPlans(this.state.settings, 'account', oldName, name);
+    if (Object.keys(renamed).length) await this.setSettings(renamed);
+  }
+
+  // Corrige el saldo de hoy sin crear un movimiento: ajusta el saldo inicial para que el saldo
+  // calculado quede exactamente en la cifra indicada (en tarjetas, negativo = lo que debes).
+  async setAccountBalanceToday(id, desired) {
+    const acc = this.state.accounts.find((a) => a.id === id);
+    if (!acc) throw new ValidationError('La cuenta ya no existe.');
+    desired = Math.round(Number(desired));
+    if (!Number.isFinite(desired)) throw new ValidationError('Escribe el saldo que tienes hoy.');
+    const current = accountBalances(this.state).get(id) || 0;
+    const diff = desired - current;
+    if (diff === 0) return 0;
+    const row = await this._update('accounts', id, { opening_balance: Math.round(Number(acc.opening_balance) + diff) });
+    this.state.accounts[this.state.accounts.findIndex((a) => a.id === id)] = row;
+    this.touch();
+    return diff;
   }
 
   async setAccountActive(id, active) {
@@ -95,9 +115,15 @@ export class BaseStore {
     this.touch();
   }
 
-  async deleteAccount(id) {
-    if (this.state.transactions.some((t) => t.from_account_id === id || t.to_account_id === id)) {
-      throw new ValidationError('La cuenta tiene movimientos. Desactívala en lugar de borrarla.');
+  // Borra la cuenta. Con withTransactions borra también todos los movimientos donde aparece
+  // (incluidos los traslados desde o hacia otras cuentas).
+  async deleteAccount(id, { withTransactions = false } = {}) {
+    const uses = (t) => t.from_account_id === id || t.to_account_id === id;
+    if (this.state.transactions.some(uses)) {
+      if (!withTransactions) throw new ValidationError('La cuenta tiene movimientos.');
+      await this._deleteAccountTransactions(id);
+      this.state.transactions = this.state.transactions.filter((t) => !uses(t));
+      this.touch();
     }
     await this._delete('accounts', id);
     this.state.accounts = this.state.accounts.filter((a) => a.id !== id);
@@ -128,9 +154,14 @@ export class BaseStore {
     if (this.state.categories.some((c) => c.id !== id && c.kind === cat.kind && c.name.toLowerCase() === name.toLowerCase())) {
       throw new ValidationError(`Ya existe la categoría «${name}».`);
     }
+    const oldName = cat.name;
     const row = await this._update('categories', id, { name, group_name });
     this.state.categories[this.state.categories.findIndex((c) => c.id === id)] = row;
     this.touch();
+    if (cat.kind === 'gasto') {
+      const renamed = renameInPlans(this.state.settings, 'category', oldName, name);
+      if (Object.keys(renamed).length) await this.setSettings(renamed);
+    }
   }
 
   async setCategoryActive(id, active) {
@@ -151,6 +182,24 @@ export class BaseStore {
     Object.assign(this.state.settings, clean);
     this.touch();
   }
+
+  async deleteSettings(keys) {
+    keys = keys.filter((k) => k in this.state.settings);
+    if (!keys.length) return;
+    await this._deleteSettings(keys);
+    for (const k of keys) delete this.state.settings[k];
+    this.touch();
+  }
+
+  // ---------- Planes (límites, pagos fijos, metas) ----------
+  async savePlan(kind, data, key = null) {
+    const value = encodePlan(kind, data, this.state, key);
+    const k = key || newPlanKey(kind);
+    await this.setSettings({ [k]: value });
+    return k;
+  }
+
+  async deletePlan(key) { await this.deleteSettings([key]); }
 
   // ---------- Copias ----------
   exportData() {
@@ -213,8 +262,18 @@ export class LocalStore extends BaseStore {
     this._save();
   }
 
+  async _deleteAccountTransactions(accountId) {
+    this.db.transactions = this.db.transactions.filter((t) => t.from_account_id !== accountId && t.to_account_id !== accountId);
+    this._save();
+  }
+
   async _upsertSettings(values) {
     Object.assign(this.db.settings, values);
+    this._save();
+  }
+
+  async _deleteSettings(keys) {
+    for (const k of keys) delete this.db.settings[k];
     this._save();
   }
 

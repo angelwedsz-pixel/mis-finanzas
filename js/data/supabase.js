@@ -149,9 +149,20 @@ export class SupabaseStore extends BaseStore {
     if (error) throw dbError(error);
   }
 
+  async _deleteAccountTransactions(accountId) {
+    const id = Number(accountId);
+    const { error } = await this.db.from('transactions').delete().or(`from_account_id.eq.${id},to_account_id.eq.${id}`);
+    if (error) throw dbError(error);
+  }
+
   async _upsertSettings(values) {
     const rows = Object.entries(values).map(([key, value]) => ({ user_id: this.userId, key, value }));
     const { error } = await this.db.from('settings').upsert(rows, { onConflict: 'user_id,key' });
+    if (error) throw dbError(error);
+  }
+
+  async _deleteSettings(keys) {
+    const { error } = await this.db.from('settings').delete().in('key', keys);
     if (error) throw dbError(error);
   }
 

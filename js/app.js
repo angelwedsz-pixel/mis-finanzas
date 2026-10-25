@@ -13,6 +13,7 @@ import { renderAccounts } from './ui/accounts.js';
 import { renderSettings } from './ui/settings.js';
 import { renderHelp } from './ui/help.js';
 import { renderWizard } from './ui/wizard.js';
+import { renderPlans } from './ui/plans.js';
 
 const DEMO_FLAG = 'mf-modo-prueba';
 const DEMO_DATA = 'mf-datos-prueba';
@@ -20,9 +21,9 @@ const root = document.getElementById('app');
 
 const ROUTES = {
   inicio: renderHome, anotar: renderRecord, movimientos: renderMovements,
-  cuentas: renderAccounts, ajustes: renderSettings, ayuda: renderHelp,
+  cuentas: renderAccounts, planes: renderPlans, ajustes: renderSettings, ayuda: renderHelp,
 };
-const NAV = [['inicio', 'home', 'Inicio'], ['movimientos', 'list', 'Movimientos'], ['anotar', 'plus', 'Anotar'],
+const NAV = [['inicio', 'home', 'Inicio'], ['movimientos', 'list', 'Historial'], ['planes', 'target', 'Planes'], ['anotar', 'plus', 'Anotar'],
   ['cuentas', 'bank', 'Cuentas'], ['ajustes', 'gear', 'Ajustes']];
 
 const ctx = {

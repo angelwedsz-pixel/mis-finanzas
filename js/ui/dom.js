@@ -25,6 +25,7 @@ const P = {
   logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   arrow: 'M5 12h14M13 6l6 6-6 6',
+  target: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
 };
 
 export function icon(name) {

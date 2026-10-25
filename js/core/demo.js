@@ -47,6 +47,11 @@ export function demoPayload(today) {
   return {
     accounts, categories, transactions: tx,
     settings: { ...DEFAULT_SETTINGS, dia_pago: '20', salario_referencia: '2250000', ahorro_valor: '300000',
-      ahorro_extra_meta: '200000', configurado: '1' },
+      ahorro_extra_meta: '200000', configurado: '1',
+      lim_demo1: JSON.stringify({ c: 'Ocio y gustos', m: 150000 }),
+      lim_demo2: JSON.stringify({ c: 'Almuerzos', m: 350000 }),
+      fijo_demo1: JSON.stringify({ n: 'Parqueadero mensual', m: 70000, d: 7, c: 'Parqueadero', a: 'Banco (ejemplo)' }),
+      fijo_demo2: JSON.stringify({ n: 'Internet', m: 95000, d: 25, c: 'Celular e internet', a: 'Banco (ejemplo)' }),
+      meta_demo1: JSON.stringify({ n: 'Fondo de emergencia', m: 3000000, f: addDays(today, 365), a: 'Ahorro (ejemplo)' }) },
   };
 }
